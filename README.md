@@ -229,3 +229,50 @@ data/mind/{character_name}/
 | **Body（肉体）** | [README](docs/components/body/README.md) |
 | **Mind（精神）** | [VOICEVOX 辞書管理](docs/components/mind/voicevox-dictionary.md) |
 | **運用・保守** | [トラブルシューティング](docs/knowledge/troubleshooting.md), [YouTube 配信セットアップ](docs/knowledge/youtube-setup.md) |
+
+## フォーク元からの変更点
+
+このリポジトリは [koduki/ai-tuber](https://github.com/koduki/ai-tuber) からフォークし、以下の変更を加えています。
+
+### TTS エンジン: VOICEVOX → AivisSpeech
+
+音声合成エンジンをVOICEVOXからAivisSpeechに切り替えました。AivisSpeechはVOICEVOX互換APIを持つため、APIコール構造は同一です。
+
+**変更理由**: AivisSpeechは高品質な日本語音声合成（Anneli音声モデル）を提供し、GPUを活用したリアルタイム合成に優れています。
+
+**変更箇所:**
+
+| ファイル | 変更内容 |
+|---------|---------|
+| `src/body/streamer/voice_adapter.py` | `TTS_ENGINE` 環境変数による切替対応。AivisSpeech/VOICEVOX両対応の話者マップ追加。デフォルトエンジンを `aivisspeech`、デフォルト話者IDをエンジンに応じて自動切替（AivisSpeech: 888753760、VOICEVOX: 1）に変更 |
+| `data/mind/ren/mind.json` | `speaker_id` を VOICEVOX 旧値（58）から AivisSpeech Anneli ノーマル（888753760）に変更 |
+| `docker-compose.yml` | `voicevox` サービスを `aivisspeech` サービスに変更。イメージ: `ghcr.io/aivis-project/aivisspeech-engine:nvidia-latest`、`command: ["--port", "50021"]`（VOICEVOXと同一ポートで起動） |
+| `docker-compose.gce.yml` | `docker-compose.yml` と同様 |
+| `docker-compose.devcontainer.yml` | サービス名 `voicevox` → `aivisspeech`、`command: ["--port", "50021"]` 追加 |
+| `.env.example` | `TTS_ENGINE`、`AIVIS_DATA_DIR` 変数を追加 |
+| `scripts/gce/startup.sh` | 動的生成する `docker-compose.gce.yml` テンプレートを AivisSpeech 向けに更新 |
+
+### TTS エンジン切替方法
+
+`TTS_ENGINE` 環境変数で AivisSpeech と VOICEVOX を切り替えられます。
+
+```env
+# AivisSpeech（デフォルト）
+TTS_ENGINE=aivisspeech
+VOICEVOX_HOST=aivisspeech
+AIVIS_DATA_DIR=~/.local/share/AivisSpeech-Engine
+
+# VOICEVOX（レガシー）
+TTS_ENGINE=voicevox
+VOICEVOX_HOST=voicevox
+```
+
+### AivisSpeech 話者 ID（Anneli）
+
+| スタイル | speaker_id | 説明 |
+|---------|-----------|------|
+| neutral / normal | `888753760` | Anneli ノーマル（デフォルト） |
+| happy | `888753764` | Anneli 上機嫌 |
+| sad / angry | `888753765` | Anneli 怒り・悲しみ（怒りと悲しみのスタイルが統合されたID） |
+
+`GET /speakers` エンドポイントでインストール済み話者の全一覧を取得できます。

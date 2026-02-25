@@ -168,7 +168,8 @@ STREAMING_MODE=true
 STREAM_TITLE=${STREAM_TITLE}
 STREAM_DESCRIPTION=${STREAM_DESC}
 STREAM_PRIVACY=${STREAM_PRIVACY}
-VOICEVOX_DATA_DIR=/opt/ai-tuber/data/mind/${CHARACTER_NAME}
+AIVIS_DATA_DIR=/opt/ai-tuber/data/mind/${CHARACTER_NAME}
+TTS_ENGINE=aivisspeech
 EOF
 
 # Create docker-compose.gce.yml dynamically
@@ -189,12 +190,13 @@ services:
     env_file: .env
     environment:
       - PORT=8000
-      - VOICEVOX_HOST=voicevox
+      - TTS_ENGINE=aivisspeech
+      - VOICEVOX_HOST=aivisspeech
       - VOICEVOX_PORT=50021
       - OBS_HOST=obs-studio
       - OBS_PORT=4455
     depends_on:
-      voicevox:
+      aivisspeech:
         condition: service_healthy
       obs-studio:
         condition: service_started
@@ -204,12 +206,13 @@ services:
       timeout: 2s
       retries: 5
 
-  voicevox:
-    image: voicevox/voicevox_engine:nvidia-ubuntu20.04-latest
+  aivisspeech:
+    image: ghcr.io/aivis-project/aivisspeech-engine:nvidia-latest
+    command: ["--port", "50021"]
     ports:
       - "50021:50021"
     volumes:
-      - \${VOICEVOX_DATA_DIR}:/home/user/.local/share/voicevox-engine-dev
+      - \${AIVIS_DATA_DIR}:/home/user/.local/share/AivisSpeech-Engine-Dev
     deploy:
       resources:
         reservations:

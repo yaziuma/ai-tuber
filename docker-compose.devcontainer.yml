@@ -31,7 +31,8 @@ services:
   body-streamer:
     profiles:
       - manual
-  voicevox:
+  aivisspeech:
+    command: ["--port", "50021"]
     profiles:
       - manual
   obs-studio:

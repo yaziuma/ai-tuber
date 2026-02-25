@@ -1,4 +1,4 @@
-"""VoiceVox adapter for speech synthesis"""
+"""TTS adapter for speech synthesis (AivisSpeech / VOICEVOX compatible)"""
 import os
 import logging
 from typing import Optional
@@ -7,23 +7,43 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# VoiceVox configuration from environment
-VOICEVOX_HOST = os.getenv("VOICEVOX_HOST", "voicevox")
+# TTS engine selection: "aivisspeech" (default) or "voicevox"
+TTS_ENGINE = os.getenv("TTS_ENGINE", "aivisspeech")
+
+# TTS engine host/port from environment
+VOICEVOX_HOST = os.getenv("VOICEVOX_HOST", "aivisspeech")
 VOICEVOX_PORT = int(os.getenv("VOICEVOX_PORT", "50021"))
 VOICEVOX_BASE_URL = f"http://{VOICEVOX_HOST}:{VOICEVOX_PORT}"
+
+logger.info(f"TTS engine: {TTS_ENGINE}, base URL: {VOICEVOX_BASE_URL}")
 
 # Shared audio directory
 VOICE_DIR = Path("/app/shared/voice")
 VOICE_DIR.mkdir(parents=True, exist_ok=True)
 
-# Speaker ID mapping (style -> speaker_id)
-SPEAKER_MAP = {
-    "neutral": 1,
-    "normal": 1,
-    "happy": 2,
-    "sad": 9,
-    "angry": 6,
+# Speaker ID mapping by engine (style -> speaker_id)
+# AivisSpeech: Anneli voice model (default bundled model)
+#   GET /speakers to enumerate all installed speakers
+_SPEAKER_MAP_AIVISSPEECH = {
+    "neutral": 888753760,  # Anneli ノーマル
+    "normal":  888753760,  # Anneli ノーマル
+    "happy":   888753764,  # Anneli 上機嫌
+    "sad":     888753765,  # Anneli 怒り・悲しみ
+    "angry":   888753765,  # Anneli 怒り・悲しみ
 }
+# VOICEVOX: legacy speaker IDs (kept for fallback)
+_SPEAKER_MAP_VOICEVOX = {
+    "neutral": 1,
+    "normal":  1,
+    "happy":   2,
+    "sad":     9,
+    "angry":   6,
+}
+SPEAKER_MAP = (
+    _SPEAKER_MAP_AIVISSPEECH if TTS_ENGINE == "aivisspeech"
+    else _SPEAKER_MAP_VOICEVOX
+)
+_DEFAULT_SPEAKER_ID = 888753760 if TTS_ENGINE == "aivisspeech" else 1
 
 
 def get_wav_duration(file_path: str) -> float:
@@ -50,7 +70,7 @@ def get_wav_duration(file_path: str) -> float:
         return 3.0  # Default fallback
 
 
-async def generate_speech(text: str, speaker_id: int = 1) -> bytes:
+async def generate_speech(text: str, speaker_id: int = _DEFAULT_SPEAKER_ID) -> bytes:
     """
     VoiceVox APIを使用して音声を合成します。
     
@@ -117,7 +137,7 @@ async def generate_and_save(text: str, style: str = "neutral", speaker_id: Optio
         (file_path, duration) のタプル
     """
     if speaker_id is None:
-        speaker_id = SPEAKER_MAP.get(style, 1)
+        speaker_id = SPEAKER_MAP.get(style, _DEFAULT_SPEAKER_ID)
     
     logger.info(f"Generating speech: '{text}' with style '{style}' (speaker {speaker_id})")
     
