@@ -1,6 +1,6 @@
 {
     "46a52e21-db32-4b8c-81e9-e41d812eaf5f": {
-        "surface": "紅月",
+        "surface": "雪村",
         "cost": 8609,
         "part_of_speech": "名詞",
         "part_of_speech_detail_1": "固有名詞",
@@ -9,8 +9,8 @@
         "inflectional_type": "*",
         "inflectional_form": "*",
         "stem": "*",
-        "yomi": "コウヅキ",
-        "pronunciation": "コウヅキ",
+        "yomi": "ユキムラ",
+        "pronunciation": "ユキムラ",
         "accent_type": 1,
         "accent_associative_rule": "*",
         "context_id": 1348,
